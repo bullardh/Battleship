@@ -318,6 +318,12 @@ class GamePlay:
         return
 
     def placing_ships(self, player, ship, coordinate, orientation):
+        """ Takes 4 parameters and places the ship on the player's board
+        :param player: current player
+        :param ship: the ship
+        :param orientation: the orientation, either R for horizontal or C for vertical
+        :param coordinate: the upper leftmost coordinates of the ship placed
+        :return: true"""
         ships = Ships()
         play = GamePlay()
         if player == self._players_turn:
@@ -337,6 +343,12 @@ class GamePlay:
             return play.error_message(f"Wrong Player! It is not {player}'s turn yet")
 
     def launching_torpedoes(self, player, coordinates):
+        """
+        Takes the parameters for the player and the coordinates and validates that guess has bot been
+        previously said.
+        :param player: the current player
+        :param coordinates: The coordinates guessed by the player to try to find the other player's ships.
+        """
         ships = Ships()
         board = GameBoard()
         catch_marker = ""

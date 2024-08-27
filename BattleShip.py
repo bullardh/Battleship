@@ -40,6 +40,13 @@ class GameBoard:
         self._y_col = 0
 
     def add_placement_board(self, player, marker, coordinate):
+        """ Add the player's ships placement choices to their respective boards
+        :param player: current player
+        :param marker: the marker designated for each ship
+        :param coordinate: the coordinate of the upper leftmost coordinate the player
+                chose to place the ship
+        :return: true
+        """
         coord = ord(coordinate[0]) - 65
         num = int(coordinate[1])
         if player == 'first':
@@ -51,12 +58,23 @@ class GameBoard:
         return
 
     def get_placement_board(self, player):
+        """ Retrieve the player's ship placement board
+        :param player: the current player
+        """
         if player == 'first':
             return self._first_placement_board
         if player == 'second':
             return self._second_placement_board
 
     def add_guess_board(self, player, marker, coordinate):
+        """ Add the player's torpedo launch guesses to their respective board.
+        If the torpedo lands in water, the marker is 'w', else it is the marker
+        designated in the ship's marker value. The coordinate is the guess location.
+        :param player: current player
+        :param marker: the marker designated for each ship
+        :param coordinate: the coordinate of the torpedo launched by the player
+        :return: true
+        """
         coord = ord(coordinate[0]) - 65
         num = int(coordinate[1])
         if player == 'first':
@@ -66,18 +84,23 @@ class GameBoard:
         return
 
     def get_guess_board(self, player):
+        """ Retrieve the player's guess board for their torpedo launch
+        :param player: the current player
+        """
         if player == 'first':
             return self._first_guess_board
         if player == 'second':
             return self._second_guess_board
 
     def create_board(self) -> list[list[str]]:
-        """Creates game boards in a 10x10 grid with empty spaces"""
+        """Creates game boards in a 10x10 grid with empty spaces. Takes no parameters"""
         self._board = [[" "] * 10 for item in range(10)]
         return self._board
 
     def print_board(self, board):
-        """Each time the player makes a guess the program prints the board"""
+        """Each time the player makes a guess the program prints the board
+        :param board: prints the board for the specific player
+        """
         print(" A B C D E F G H I J")
         print(" +-+-+-+-+-+-+-+-+-+")
         row_num = 1
@@ -89,6 +112,7 @@ class GameBoard:
 
 class Ships:
     def __init__(self):
+        """ Takes no parameters and initializes data members pertaining to the player's ships"""
         self._ships = {"carrier": {"marker": "c", "length": 5, "orientation": "", "position": "", "placed": [], "sunk": False},
                        "battleship": {"marker": "b", "length": 4, "orientation": "", "position": "", "placed": [], "sunk": False},
                        "cruiser": {"marker": "r", "length": 3, "orientation": "", "position": "", "placed": [], "sunk": False},
@@ -102,12 +126,19 @@ class Ships:
         self._second_placed_count = 0
 
     def get_first_ships(self):
+        """Retrieves the ship's dictionary for the first player. Takes no parameters"""
         return self._first_ships
 
     def get_second_ships(self):
+        """Retrieves the ship's dictionary for the second player. Takes no parameters"""
         return self._second_ships
 
     def add_ship_orientation(self, player, ship, orient):
+        """Add the ship's placement orientation for each player's choices
+        :param player: current player
+        :param ship: the ship the player wants to place
+        :param orient: the orientation, either R for horizontal or C for vertical
+        :return: true"""
         if orient == 'R' or orient == 'C':
             if player == 'first':
                 self._first_ships[ship]["orientation"] = orient
@@ -116,11 +147,16 @@ class Ships:
         return
 
     def add_ship_position(self, player, ship, posit):
+        """Add the ship's placement starting position for each player's choices
+        :param player: current player
+        :param ship: the ship the player wants to place
+        :param posit: states which uppermost left column and row the ship will occupy
+        :return: true"""
         if player == 'first':
             self._first_ships[ship]["position"] = posit
         else:
             self._second_ships[ship]["position"] = posit
-        return
+        return True
 
     def verify_empty(self, player, ship, orient, position):
         """
@@ -129,7 +165,7 @@ class Ships:
         :param ship: the ship the player wants to place
         :param orient: the orientation, either R for horizontal or C for vertical
         :param position: states which uppermost left column and row the ship will occupy
-        :return: true if all the spaces are empty and on the board, else false
+        :return: variable 'verify' either true if all the spaces are empty and on the board, else false
         """
         verify = True
         board = GameBoard()
@@ -148,6 +184,14 @@ class Ships:
         return verify
 
     def add_ship_placed(self, player, ship, direction, coord):
+        """ Validate each of the ships have not already been added to the player's placement board
+        and that the coordinates do not cause the length of the ship to extend out of bounds
+        :param player: current player
+        :param ship: the ship
+        :param direction: the orientation, either R for horizontal or C for vertical
+        :param coord: the upper leftmost coordinates of the ship placed
+        :return: true
+        """
         board = GameBoard()
         if Ships.get_ship_placed_count(self, player) == 5:
             GamePlay.error_message(f"All ships are placed for {player}!")
@@ -179,6 +223,9 @@ class Ships:
         return
 
     def add_ship_placed_count(self, player):
+        """ Keep track of each player's ships that have been placed
+        :param player: the current player
+        """
         if player == 'first':
             self._first_placed_count += 1
             return self._first_placed_count
@@ -187,50 +234,60 @@ class Ships:
             return self._second_placed_count
 
     def get_ship_placed_count(self, player):
-        """Retrieve each of the ships' placed for each player"""
+        """Retrieve each of the player's current count for the number of ships placed
+        :param player: the current player
+        """
         if player == 'first':
             return self._first_placed_count
         else:
             return self._second_placed_count
 
     def get_ship_marker(self, ship):
-        """Retrieve each of the ships' abbreviated term for placement"""
+        """Retrieve each of the ships' abbreviated term for placement
+        :param ship: the ship name listed as a key"""
         return self._ships[ship]["marker"]
 
     def get_ship_length(self, ship):
-        """Retrieves each of the ships' lengths"""
+        """Retrieves each of the ships' lengths
+        :param ship: the ship's name listed as a key"""
         return self._ships[ship]["length"]
 
     def get_ship_coordinates(self, player, ship):
-        """Retrieves each of the ships' coordinates"""
+        """Retrieves each of the ships' coordinates for a specific player
+        :param player: the current player
+        :param ship: the ship's name listed as a key
+        """
         if player == 'first':
             return self._first_ships[ship]['placed']
         else:
             return self._second_ships[ship]['placed']
 
     def get_ship_orientation(self, player, ship):
-        """Retrieves each of the ships' orientation"""
+        """Retrieves each of the ships' orientation
+        :param player: the current player
+        :param ship: the ship's name listed as a key
+        """
         if player == 'first':
             return self._first_ships[ship]["orientation"]
         else:
             return self._second_ships[ship]["orientation"]
 
     def add_first_sunk(self):
-        """Adds to the First player Sunk Ship Count"""
+        """Adds one to the First player Sunk Ship Count. Takes no parameters"""
         self._first_sunk_count += 1
         return
 
     def get_first_sunk(self):
-        """Retrieves the First Player's Sunk Ship Count"""
+        """Retrieves the First Player's Sunk Ship Count. Takes no parameters"""
         return self._first_sunk_count
 
     def add_second_sunk(self):
-        """Adds to the Second Player's Sunk Ship Count"""
+        """Adds one to the Second Player's Sunk Ship Count. Takes no parameters"""
         self._second_sunk_count += 1
         return
 
     def get_second_sunk(self):
-        """Retrieves the Second Player's Sunk Ship Count"""
+        """Retrieves the Second Player's Sunk Ship Count. Takes no parameters"""
         return self._second_sunk_count
 
 
@@ -253,6 +310,10 @@ class GamePlay:
 
     @staticmethod
     def error_message(message):
+        """
+        Prints a unique error message
+        :param message: the error message
+        """
         print(f"{message}")
         return
 

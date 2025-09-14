@@ -1,13 +1,15 @@
 # Author: Heather Bullard
 # GitHub username: bullardh
-# Date: 3/12/2022
+# Date: 9/14/2025
 # Description: a class called ShipGame that allows two people to play the game Battleship. Each player
 #               has their own 10x10 grid they place their ships on. On their turn, they can fire a torpedo
 #               at a square on the enemy's grid. Player 'first' gets the first turn to fire a torpedo,
 #               after which players alternate firing torpedoes. A ship is sunk when all of its squares
 #               have been hit. When a player sinks their opponent's final ship, they win.
+import itertools
 
 # TODO: add docstrings and sunken ships, clean up code,
+import random
 
 """
         BATTLESHIP
@@ -29,266 +31,102 @@
 """
 
 
-class GameBoard:
-    def __init__(self):
-        """Takes no parameters. Initializes the gameboard for each player when called"""
-        self._first_placement_board = [[" "] * 10 for item in range(10)]
-        self._first_guess_board = [[" "] * 10 for item in range(10)]
-        self._second_placement_board = [[" "] * 10 for item in range(10)]
-        self._second_guess_board = [[" "] * 10 for item in range(10)]
-        self._x_row = 0
-        self._y_col = 0
-
-    def add_placement_board(self, player, marker, coordinate):
-        """ Add the player's ships placement choices to their respective boards
-        :param player: current player
-        :param marker: the marker designated for each ship
-        :param coordinate: the coordinate of the upper leftmost coordinate the player
-                chose to place the ship
-        :return: true
-        """
-        coord = ord(coordinate[0]) - 65
-        num = int(coordinate[1])
-        if player == 'first':
-            if self._first_placement_board[coord][num] == " ":
-                self._first_placement_board[coord][num] = marker
-        if player == 'second':
-            if self._second_placement_board[coord][num]:
-                self._second_placement_board[coord][num] = marker
-        return
-
-    def get_placement_board(self, player):
-        """ Retrieve the player's ship placement board
-        :param player: the current player
-        """
-        if player == 'first':
-            return self._first_placement_board
-        if player == 'second':
-            return self._second_placement_board
-
-    def add_guess_board(self, player, marker, coordinate):
-        """ Add the player's torpedo launch guesses to their respective board.
-        If the torpedo lands in water, the marker is 'w', else it is the marker
-        designated in the ship's marker value. The coordinate is the guess location.
-        :param player: current player
-        :param marker: the marker designated for each ship
-        :param coordinate: the coordinate of the torpedo launched by the player
-        :return: true
-        """
-        coord = ord(coordinate[0]) - 65
-        num = int(coordinate[1])
-        if player == 'first':
-            self._first_guess_board[coord][num] = marker
-        if player == 'second':
-            self._second_guess_board[coord][num] = marker
-        return
-
-    def get_guess_board(self, player):
-        """ Retrieve the player's guess board for their torpedo launch
-        :param player: the current player
-        """
-        if player == 'first':
-            return self._first_guess_board
-        if player == 'second':
-            return self._second_guess_board
-
-    def create_board(self) -> list[list[str]]:
-        """Creates game boards in a 10x10 grid with empty spaces. Takes no parameters"""
-        self._board = [[" "] * 10 for item in range(10)]
-        return self._board
-
-    def print_board(self, board):
-        """Each time the player makes a guess the program prints the board
-        :param board: prints the board for the specific player
-        """
-        print(" A B C D E F G H I J")
-        print(" +-+-+-+-+-+-+-+-+-+")
-        row_num = 1
-        for row in board:
-            print("%d|%s|" % (row_num, "|".join(row)))
-            row_num += 1
-        return
-
-
 class Ships:
-    def __init__(self):
+    def __init__(self, name, size):
         """ Takes no parameters and initializes data members pertaining to the player's ships"""
-        self._ships = {"carrier": {"marker": "c", "length": 5, "orientation": "", "position": "", "placed": [], "sunk": False},
-                       "battleship": {"marker": "b", "length": 4, "orientation": "", "position": "", "placed": [], "sunk": False},
-                       "cruiser": {"marker": "r", "length": 3, "orientation": "", "position": "", "placed": [], "sunk": False},
-                       "submarine": {"marker": "s", "length": 3, "orientation": "", "position": "", "placed": [], "sunk": False},
-                       "destroyer": {"marker": "d", "length": 2, "orientation": "", "position": "", "placed": [], "sunk": False}}
-        self._first_ships = self._ships
-        self._second_ships = self._ships
-        self._first_sunk_count = 0
-        self._second_sunk_count = 0
-        self._first_placed_count = 0
-        self._second_placed_count = 0
+        self._name = name
+        self._size = size
+        self._positions = set()
+        self._hits = set()
 
-    def get_first_ships(self):
-        """Retrieves the ship's dictionary for the first player. Takes no parameters"""
-        return self._first_ships
+    def place(self, start_row, start_col, horizontal, board_size):
+        """Place ship in given orientation if valid, return set of coordinates or None."""
+        coords = set()
+        for i in range(self._size):
+            r = start_row + (0 if horizontal else i)
+            c = start_col + (i if horizontal else 0)
+            if not (0 <= r < board_size and 0 <= c < board_size):
+                return None
+            coords.add((r, c))
+        self._positions = coords
+        return coords
 
-    def get_second_ships(self):
-        """Retrieves the ship's dictionary for the second player. Takes no parameters"""
-        return self._second_ships
+    def hit(self, row, col):
+        """Register hit if this ship occupies (row, col)."""
+        pos = (row, col)
+        if pos in self._positions:
+            self._hits.add(pos)
+            return True
+        return False
 
-    def add_ship_orientation(self, player, ship, orient):
-        """Add the ship's placement orientation for each player's choices
-        :param player: current player
-        :param ship: the ship the player wants to place
-        :param orient: the orientation, either R for horizontal or C for vertical
-        :return: true"""
-        if orient == 'R' or orient == 'C':
-            if player == 'first':
-                self._first_ships[ship]["orientation"] = orient
-            else:
-                self._second_ships[ship]["orientation"] = orient
-        return
+    def is_sunk(self):
+        return self._positions == self._hits
 
-    def add_ship_position(self, player, ship, posit):
-        """Add the ship's placement starting position for each player's choices
-        :param player: current player
-        :param ship: the ship the player wants to place
-        :param posit: states which uppermost left column and row the ship will occupy
-        :return: true"""
-        if player == 'first':
-            self._first_ships[ship]["position"] = posit
-        else:
-            self._second_ships[ship]["position"] = posit
-        return True
+    def get_positions(self):
+        return self._positions.copy()
 
-    def verify_empty(self, player, ship, orient, position):
-        """
-        Validates the placement of ships to make sure they are valid moves
-        :param player: current player
-        :param ship: the ship the player wants to place
-        :param orient: the orientation, either R for horizontal or C for vertical
-        :param position: states which uppermost left column and row the ship will occupy
-        :return: variable 'verify' either true if all the spaces are empty and on the board, else false
-        """
-        verify = True
-        board = GameBoard()
-        ships = Ships()
-        board.print_board(player)
-        new_letter = ord(position[0]) - 65
-        new_num = int(position[1])
-        if orient == 'R' and ((new_num + ships.get_ship_length(ship)) < 10):
-            for item in range(ships.get_ship_length(ship)):
-                if board.get_placement_board(player)[item+new_letter][new_num] != " ":
-                    verify = False
-        if orient == 'C' and ((new_letter + ships.get_ship_length(ship)) < 10):
-            for item in range(ships.get_ship_length(ship)):
-                if board.get_placement_board(player)[new_letter][item+new_num] != " ":
-                    verify = False
-        return verify
+    def get_name(self):
+        return self._name
 
-    def add_ship_placed(self, player, ship, direction, coord):
-        """ Validate each of the ships have not already been added to the player's placement board
-        and that the coordinates do not cause the length of the ship to extend out of bounds
-        :param player: current player
-        :param ship: the ship
-        :param direction: the orientation, either R for horizontal or C for vertical
-        :param coord: the upper leftmost coordinates of the ship placed
-        :return: true
-        """
-        board = GameBoard()
-        if Ships.get_ship_placed_count(self, player) == 5:
-            GamePlay.error_message(f"All ships are placed for {player}!")
-            return
-        if player == 'first':
-            ships = self._first_ships[ship]
-        else:
-            ships = self._second_ships[ship]
 
-        letter, num = ord(coord[0]), int(coord[1])
-        empty = Ships.verify_empty(self, player, ship, direction, coord)
-        if empty is False:
-            print("Ship Error: placement occupied or placement off the board")
-            return
-        ships["position"].append(coord)
-        for item in range(ships["length"]):
-            if ships["orientation"] == 'R':
-                letter += 1  # add letters
-                new_coord = f'{chr(letter)}{coord[1]}'
-                ships["placed"].append(new_coord)
-                board.add_placement_board(player, ships["marker"], new_coord)
+class GameBoard:
+    def __init__(self, size=10):
+        """Takes no parameters. Initializes the gameboard for each player when called"""
+        self._size = size
+        self._ships = []
+        self._occupied = set()
+        self._hits = set()
+        self._misses = set()
 
-            if ships["orientation"] == 'C':
-                num += 1
-                new_coord = f'{coord[0]}{num}'
-                ships["placed"].append(new_coord)
-                board.add_placement_board(player, ships["marker"], new_coord)
-        self.add_ship_placed_count(player)
-        return
+    # --- Encapsulation helpers ---
+    def get_size(self):
+        return self._size
 
-    def add_ship_placed_count(self, player):
-        """ Keep track of each player's ships that have been placed
-        :param player: the current player
-        """
-        if player == 'first':
-            self._first_placed_count += 1
-            return self._first_placed_count
-        else:
-            self._second_placed_count += 1
-            return self._second_placed_count
+    def display_board(self, reveal=False):
+        """Displays board, reveal=True, shows ships for debug"""
+        for r in range(self._size):
+            row = []
+            for c in range(self._size):
+                pos = (r, c)
+                if pos in self._hits:
+                    row.append("X")   # hit
+                elif pos in self._misses:
+                    row.append("O")   # miss
+                elif reveal and pos in self._ships:
+                    row.append("S")   # ship
+                else:
+                    row.append(".")
+            print(" ".join(row))
+        print()
 
-    def get_ship_placed_count(self, player):
-        """Retrieve each of the player's current count for the number of ships placed
-        :param player: the current player
-        """
-        if player == 'first':
-            return self._first_placed_count
-        else:
-            return self._second_placed_count
+    def place_ship(self, ship, start_row, start_col, horizontal):
+        """Place ship at given coordinates, if valid"""
+        coords = ship.place(start_row, start_col, horizontal, self._size)
+        if coords is None:
+            return "Out of Bounds"
+        if any(pos in self._occupied for pos in coords):
+            return "Overlap"
+        self._ships.append(ship)
+        self._occupied |= coords
+        return "Placed"
 
-    def get_ship_marker(self, ship):
-        """Retrieve each of the ships' abbreviated term for placement
-        :param ship: the ship name listed as a key"""
-        return self._ships[ship]["marker"]
+    def fire(self, row, col):
+        """Player fires at coordinate, returns result"""
+        pos = (row, col)
+        if pos in self._hits or pos in self._misses:
+            return "Invalid" # Already fired
+        for ship in self._ships:
+            if ship.hit(row, col):
+                self._hits.add(pos)
+                if ship.is_sunk():
+                    return f'Sunk {ship.get_name()}'
+                return "Hit"
+        self._misses.add(pos)
+        return "Miss"
 
-    def get_ship_length(self, ship):
-        """Retrieves each of the ships' lengths
-        :param ship: the ship's name listed as a key"""
-        return self._ships[ship]["length"]
-
-    def get_ship_coordinates(self, player, ship):
-        """Retrieves each of the ships' coordinates for a specific player
-        :param player: the current player
-        :param ship: the ship's name listed as a key
-        """
-        if player == 'first':
-            return self._first_ships[ship]['placed']
-        else:
-            return self._second_ships[ship]['placed']
-
-    def get_ship_orientation(self, player, ship):
-        """Retrieves each of the ships' orientation
-        :param player: the current player
-        :param ship: the ship's name listed as a key
-        """
-        if player == 'first':
-            return self._first_ships[ship]["orientation"]
-        else:
-            return self._second_ships[ship]["orientation"]
-
-    def add_first_sunk(self):
-        """Adds one to the First player Sunk Ship Count. Takes no parameters"""
-        self._first_sunk_count += 1
-        return
-
-    def get_first_sunk(self):
-        """Retrieves the First Player's Sunk Ship Count. Takes no parameters"""
-        return self._first_sunk_count
-
-    def add_second_sunk(self):
-        """Adds one to the Second Player's Sunk Ship Count. Takes no parameters"""
-        self._second_sunk_count += 1
-        return
-
-    def get_second_sunk(self):
-        """Retrieves the Second Player's Sunk Ship Count. Takes no parameters"""
-        return self._second_sunk_count
+    def is_defeated(self):
+        """Check if all ships are destroyed"""
+        return all(ship.is_sunk() for ship in self._ships)
 
 
 class GamePlay:
@@ -296,16 +134,26 @@ class GamePlay:
         On their turn, they can fire a torpedo at a square on the enemy's grid. Player 'first' gets the first turn to
         fire a torpedo, after which players alternate firing torpedoes. A ship is sunk when all of its squares have been
         hit. When a player sinks their opponent's final ship, they win."""
-    def __init__(self):
+    def __init__(self, size=10, vs_computer=True):
         """
         Takes no parameters. Initializes data members for the placement game boards and the guess boards for
         each player, players_turn, and the game_state
         """
-        self._first_placement_board = GameBoard.create_board
-        self._first_guess_board = GameBoard.create_board
-        self._second_placement_board = GameBoard.create_board
-        self._second_guess_board = GameBoard.create_board
-        self._players_turn = 'first'
+        self._boards = {
+            "Player 1": GameBoard(size),
+            "Player 2": GameBoard(size)
+        }
+        self._turns = itertools.cycle(["Player 1", "Player 2"])
+        self._current_player = next(self._turns)
+        self._vs_computer = vs_computer
+        self._fleet = [
+            ("carrier", 5),
+            ("battleship", 4),
+            ("cruiser", 3),
+            ("submarine", 3),
+            ("destroyer", 2)
+        ]
+
         self._game_state = "UNFINISHED"
 
     @staticmethod
@@ -317,73 +165,91 @@ class GamePlay:
         print(f"{message}")
         return
 
-    def placing_ships(self, player, ship, coordinate, orientation):
-        """ Takes 4 parameters and places the ship on the player's board
-        :param player: current player
-        :param ship: the ship
-        :param orientation: the orientation, either R for horizontal or C for vertical
-        :param coordinate: the upper leftmost coordinates of the ship placed
-        :return: true"""
-        ships = Ships()
-        play = GamePlay()
-        if player == self._players_turn:
-            if player == 'first':
-                if ship not in ships.get_first_ships().keys:
-                    play.error_message(f"Wrong Ship! {ship} is not a correct ship")
-                    return
-
-            if player == 'second':
-                if ship not in ships.get_second_ships().keys:
-                    return play.error_message(f"Wrong Ship! {ship} is not a correct")
-            ships.add_ship_placed(player, ship, orientation, coordinate)
-            ships.add_ship_orientation(player, ship, orientation)
-
-            return
-        else:
-            return play.error_message(f"Wrong Player! It is not {player}'s turn yet")
-
-    def launching_torpedoes(self, player, coordinates):
+    def setup_phase(self):
+        """ Let both players place their ships before game starts.
+        Takes 4 parameters and places the ship on the player's board
         """
-        Takes the parameters for the player and the coordinates and validates that guess has bot been
-        previously said.
-        :param player: the current player
-        :param coordinates: The coordinates guessed by the player to try to find the other player's ships.
-        """
-        ships = Ships()
-        board = GameBoard()
-        catch_marker = ""
-        if player != self._players_turn:
-            GamePlay.error_message(f"Wrong Player! It is not {player} player's turn!")
-            return
-        new_letter = ord(coordinates[0]) - 65
-        new_num = int(coordinates[1])
-        if board.get_guess_board(player)[new_letter][new_num] != " ":
-            GamePlay.error_message("Already Launched Torpedo Here! Try Again!")
-            return
-        if board.get_placement_board(player)[new_letter][new_num] == " ":
-            board.add_guess_board(player, "w", coordinates)
+        for player in ["Player 1", "Player 2"]:
+            print(f'\n{player}, place your fleet.')
+            for name, size in self._fleet:
+                placed = False
+                while not placed:
+                    if player == "Player 2" and self._vs_computer:
+                        # Computer randomly places ships
+                        row = random.randint(0, self._boards[player].get_size() - 1)
+                        col = random.randint(0, self._boards[player].get_size() - 1)
+                        horizontal = random.choice([True, False])
+                    else:
+                        try:
+                            row = int(input(f'{name} (size {size}) - Enter start row: '))
+                            col = int(input(f'{name} (size {size}) - Enter start col: '))
+                            orientation = input("Horizontal? (y/n): ").strip().lower()
+                            horizontal = orientation == "y"
+                        except ValueError:
+                            print("Invalid input. Try Again")
+                            continue
 
-        catch_marker = board.get_placement_board(player)[new_letter][new_num]
-        board.add_guess_board(player, catch_marker, coordinates)
+                    ship = Ships(name, size)
+                    result = self._boards[player].place_ship(ship, row, col, horizontal)
+                    if result == "Placed":
+                        placed = True
+                        print(f"{name} placed ")
+                    elif result == "Out of Bounds":
+                        if player != "Player 2":  # Don't spam for computer
+                            print("Out of Bounds. Try again.")
+                    elif result == "Overlap":
+                        if player != "Player 2":
+                            print("Overlaps with another ship. Try again.")
+                # Computer retries automatically
+
+            if player != "Player 2" or not self._vs_computer:
+                print(f"{player}'s board (debug view):")
+                self._boards[player].display_board(reveal=True)
+
+    def play(self):
+        self.setup_phase()
+        while True:  # Loop ends via return, no break
+            opponent = "Player 2" if self._current_player == "Player 1" else "Player 1"
+            print(f"\n{self._current_player}'s turn to fire at {opponent}'s board!")
+
+            # show current board state before firing
+            print(f"\n{opponent}'s board (current view):")
+            self._boards[opponent].display_board(reveal=False)
+
+            if self._current_player == "Player 2" and self._vs_computer:
+                row = random.randint(0, self._boards[opponent].get_size() - 1)
+                col = random.randint(0, self._boards[opponent].get_size() - 1)
+                print(f"Computer fires at ({row}, {col})")
+            else:
+                try:
+                    row = int(input("Enter row: "))
+                    col = int(input("Enter col: "))
+                except ValueError:
+                    print("Invalid input. Numbers only.")
+                    self._current_player = next(self._turns)
+                    continue
+
+            result = self._boards[opponent].fire(row, col)
+            print(result)
+            print(f"\nUpdated {opponent}'s board:")
+            self._boards[opponent].display_board(reveal=False)
+
+            if self._boards[opponent].is_defeated():
+                print(f"\n🎉 {self._current_player} WINS! All ships destroyed! 🎉")
+                return
+
+            self._current_player = next(self._turns)
+
+
+if __name__ == "__main__":
+    game = GamePlay(size=10, vs_computer=True)
+    game.play()
+
 
         # add checking for sunk ship based on catch_marker
         # if ship sinks, add 1 to player's sunken wins which keeps track of the number of sunken ships the player has sunk of the opponents fleet.
         # check if number of sunken ships equals total number of ships, if so change status to the player won, print message, exit
         # else, next player's turn to launch a torpedo, repeat until one player's ships have all been sunk.
 
+    game.setup_phase()
 
-
-
-
-
-game = GamePlay()
-game.placing_ships('first', 'carrier', 'A5', 'R')
-game.placing_ships('second', 'submarine', 'B1', 'C')
-game.placing_ships('first', 'submarine', 'C1', 'C')
-game.placing_ships('second', 'carrier', 'D4', 'C')
-game.placing_ships('first', 'cruiser', 'A9', 'R')
-game.placing_ships('second', 'cruiser', 'F4', 'R')
-game.placing_ships('first', 'destroyer', 'J7', 'C')
-game.placing_ships('second', 'destroyer', 'E4', 'C')
-game.placing_ships('first', 'battleship', 'A1', 'C')
-game.placing_ships('second', 'battleship', 'H1', 'C')

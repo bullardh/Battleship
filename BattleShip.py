@@ -7,6 +7,7 @@
 #               after which players alternate firing torpedoes. A ship is sunk when all of its squares
 #               have been hit. When a player sinks their opponent's final ship, they win.
 import itertools
+import pandas as pd
 
 # TODO: add docstrings and sunken ships, clean up code,
 import random
@@ -32,6 +33,7 @@ import random
 
 
 class Ships:
+    """Keeps track of ship's size, the number of hits, and sunk logic"""
     def __init__(self, name, size):
         """ Takes no parameters and initializes data members pertaining to the player's ships"""
         self._name = name
@@ -70,6 +72,7 @@ class Ships:
 
 
 class GameBoard:
+    """Creates the Board grid. Keeps track of ship placement and attacks."""
     def __init__(self, size=10):
         """Takes no parameters. Initializes the gameboard for each player when called"""
         self._size = size
@@ -130,7 +133,7 @@ class GameBoard:
 
 
 class GamePlay:
-    """Inherits board. allows two people to play the game Battleship. Each player has their own 10x10 grid they place their ships on.
+    """Keeps track of game loop and win condition. Inherits board. allows two people to play the game Battleship. Each player has their own 10x10 grid they place their ships on.
         On their turn, they can fire a torpedo at a square on the enemy's grid. Player 'first' gets the first turn to
         fire a torpedo, after which players alternate firing torpedoes. A ship is sunk when all of its squares have been
         hit. When a player sinks their opponent's final ship, they win."""
@@ -239,6 +242,25 @@ class GamePlay:
                 return
 
             self._current_player = next(self._turns)
+
+# ----------------------------------------
+# Player works fine do not change for now
+# ----------------------------------------
+
+
+class Player:
+    """The class Player owns the board and keeps track of turns."""
+    def __init__(self):
+        self._player_choice = {"first": "First Player", "second": "Second Player"}
+        self._current_player = self._player_choice["first"]
+
+    def get_current_player(self):
+        return self._current_player
+
+    def change_player(self, player):
+        if player != self._current_player and self._player_choice.get(player) is not None:
+            self._current_player = self._player_choice.get(player)
+        return self._current_player
 
 
 if __name__ == "__main__":
